@@ -15,6 +15,11 @@ func (self *PUT_STATIC) Execute(frame *rtda.Frame) {
 	field := fieldRef.ResolvedField()
 	class := field.Class()
 	// todo: init class
+	if !class.InitStarted() {
+		frame.RevertNextPC()
+		base.InitClass(frame.Thread(), class)
+		return
+	}
 
 	if !field.IsStatic() {
 		panic("java.lang.IncompatibleClassChangeError")
