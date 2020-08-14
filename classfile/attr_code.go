@@ -45,6 +45,18 @@ func (self *CodeAttribute) MaxLocals() uint {
 func (self *CodeAttribute) Code() []byte {
 	return self.code
 }
+
+func (self *CodeAttribute) LineNumberTableAttribute() *LineNumberTableAttribute {
+	for _, attrInfo := range self.attributes {
+		switch attrInfo.(type) {
+		case *LineNumberTableAttribute:
+			return attrInfo.(*LineNumberTableAttribute)
+		}
+	}
+	return nil
+}
+
+
 func (self *CodeAttribute) ExceptionTable() []*ExceptionTableEntry {
 	return self.exceptionTable
 }
