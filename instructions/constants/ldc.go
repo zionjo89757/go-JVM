@@ -3,6 +3,7 @@ package constants
 import "jvm/instructions/base"
 import "jvm/rtda"
 import "jvm/rtda/heap"
+
 // Push item from run-time constant pool
 type LDC struct{ base.Index8Instruction }
 
@@ -33,7 +34,7 @@ func _ldc(frame *rtda.Frame, index uint) {
 	case *heap.ClassRef:
 		classRef := c.(*heap.ClassRef)
 		classObj := classRef.ResolvedClass().JClass()
-		stack.PushRef(classObj)		
+		stack.PushRef(classObj)
 	// case MethodType, MethodHandle
 	default:
 		panic("todo: ldc!")

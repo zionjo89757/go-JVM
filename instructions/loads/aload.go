@@ -38,4 +38,3 @@ func _aload(frame *rtda.Frame, index uint) {
 	ref := frame.LocalVars().GetRef(index)
 	frame.OperandStack().PushRef(ref)
 }
-	

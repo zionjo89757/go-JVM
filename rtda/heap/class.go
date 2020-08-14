@@ -12,15 +12,15 @@ type Class struct {
 	constantPool      *ConstantPool
 	fields            []*Field
 	methods           []*Method
+	sourceFile        string
 	loader            *ClassLoader
 	superClass        *Class
 	interfaces        []*Class
 	instanceSlotCount uint
 	staticSlotCount   uint
 	staticVars        Slots
-	initStarted	      bool
+	initStarted       bool
 	jClass            *Object
-	sourceFile 	      string
 }
 
 func newClass(cf *classfile.ClassFile) *Class {
@@ -34,6 +34,13 @@ func newClass(cf *classfile.ClassFile) *Class {
 	class.methods = newMethods(class, cf.Methods())
 	class.sourceFile = getSourceFile(cf)
 	return class
+}
+
+func getSourceFile(cf *classfile.ClassFile) string {
+	if sfAttr := cf.SourceFileAttribute(); sfAttr != nil {
+		return sfAttr.FileName()
+	}
+	return "Unknown" // todo
 }
 
 func (self *Class) IsPublic() bool {
@@ -61,12 +68,10 @@ func (self *Class) IsEnum() bool {
 	return 0 != self.accessFlags&ACC_ENUM
 }
 
-func (self *Class) IsPrimitive() bool {
-	_, ok := primitiveTypes[self.name]
-	return ok
-}
-
 // getters
+func (self *Class) AccessFlags() uint16 {
+	return self.accessFlags
+}
 func (self *Class) Name() string {
 	return self.name
 }
@@ -79,46 +84,30 @@ func (self *Class) Fields() []*Field {
 func (self *Class) Methods() []*Method {
 	return self.methods
 }
-func (self *Class) SuperClass() *Class {
-	return self.superClass
-}
-
-func (self *Class) Loader() *ClassLoader {
-	return self.loader
-}
-
-func (self *Class) StaticVars() Slots {
-	return self.staticVars
-}
-
 func (self *Class) SourceFile() string {
 	return self.sourceFile
 }
-
+func (self *Class) Loader() *ClassLoader {
+	return self.loader
+}
+func (self *Class) SuperClass() *Class {
+	return self.superClass
+}
+func (self *Class) Interfaces() []*Class {
+	return self.interfaces
+}
+func (self *Class) StaticVars() Slots {
+	return self.staticVars
+}
 func (self *Class) InitStarted() bool {
 	return self.initStarted
 }
-
-func (self *Class) StartInit() {
-	self.initStarted = true
-}
-
 func (self *Class) JClass() *Object {
 	return self.jClass
 }
 
-func (self *Class) JavaName() string {
-	return strings.Replace(self.name, "/", ".", -1)
-}
-
-func (self *Class) isJlObject() bool {
-	return self.name == "java/lang/Object"
-}
-func (self *Class) isJlCloneable() bool {
-	return self.name == "java/lang/Cloneable"
-}
-func (self *Class) isJioSerializable() bool {
-	return self.name == "java/io/Serializable"
+func (self *Class) StartInit() {
+	self.initStarted = true
 }
 
 // jvms 5.4.4
@@ -169,6 +158,16 @@ func (self *Class) getField(name, descriptor string, isStatic bool) *Field {
 	return nil
 }
 
+func (self *Class) isJlObject() bool {
+	return self.name == "java/lang/Object"
+}
+func (self *Class) isJlCloneable() bool {
+	return self.name == "java/lang/Cloneable"
+}
+func (self *Class) isJioSerializable() bool {
+	return self.name == "java/io/Serializable"
+}
+
 func (self *Class) NewObject() *Object {
 	return newObject(self)
 }
@@ -178,10 +177,23 @@ func (self *Class) ArrayClass() *Class {
 	return self.loader.LoadClass(arrayClassName)
 }
 
+func (self *Class) JavaName() string {
+	return strings.Replace(self.name, "/", ".", -1)
+}
+
+func (self *Class) IsPrimitive() bool {
+	_, ok := primitiveTypes[self.name]
+	return ok
+}
+
 func (self *Class) GetInstanceMethod(name, descriptor string) *Method {
 	return self.getMethod(name, descriptor, false)
 }
+func (self *Class) GetStaticMethod(name, descriptor string) *Method {
+	return self.getMethod(name, descriptor, true)
+}
 
+// reflection
 func (self *Class) GetRefVar(fieldName, fieldDescriptor string) *Object {
 	field := self.getField(fieldName, fieldDescriptor, true)
 	return self.staticVars.GetRef(field.slotId)
@@ -191,10 +203,44 @@ func (self *Class) SetRefVar(fieldName, fieldDescriptor string, ref *Object) {
 	self.staticVars.SetRef(field.slotId, ref)
 }
 
-func getSourceFile(cf *classfile.ClassFile) string {
-	if sfAttr := cf.SourceFileAttribute(); sfAttr != nil {
-		return sfAttr.FileName()
+func (self *Class) GetFields(publicOnly bool) []*Field {
+	if publicOnly {
+		publicFields := make([]*Field, 0, len(self.fields))
+		for _, field := range self.fields {
+			if field.IsPublic() {
+				publicFields = append(publicFields, field)
+			}
+		}
+		return publicFields
+	} else {
+		return self.fields
 	}
-	return "Unknown"
 }
-	
+
+func (self *Class) GetConstructor(descriptor string) *Method {
+	return self.GetInstanceMethod("<init>", descriptor)
+}
+
+func (self *Class) GetConstructors(publicOnly bool) []*Method {
+	constructors := make([]*Method, 0, len(self.methods))
+	for _, method := range self.methods {
+		if method.isConstructor() {
+			if !publicOnly || method.IsPublic() {
+				constructors = append(constructors, method)
+			}
+		}
+	}
+	return constructors
+}
+
+func (self *Class) GetMethods(publicOnly bool) []*Method {
+	methods := make([]*Method, 0, len(self.methods))
+	for _, method := range self.methods {
+		if !method.isClinit() && !method.isConstructor() {
+			if !publicOnly || method.IsPublic() {
+				methods = append(methods, method)
+			}
+		}
+	}
+	return methods
+}

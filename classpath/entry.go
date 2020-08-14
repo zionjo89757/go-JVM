@@ -3,9 +3,11 @@ package classpath
 import "os"
 import "strings"
 
+// :(linux/unix) or ;(windows)
 const pathListSeparator = string(os.PathListSeparator)
 
 type Entry interface {
+	// className: fully/qualified/ClassName.class
 	readClass(className string) ([]byte, Entry, error)
 	String() string
 }

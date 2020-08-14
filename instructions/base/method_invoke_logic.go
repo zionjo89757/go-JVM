@@ -1,10 +1,12 @@
 package base
 
-//import "fmt"
+import "fmt"
+import "strings"
 import "jvm/rtda"
 import "jvm/rtda/heap"
 
 func InvokeMethod(invokerFrame *rtda.Frame, method *heap.Method) {
+	//_logInvoke(callerFrame.Thread().StackDepth(), method)
 	thread := invokerFrame.Thread()
 	newFrame := thread.NewFrame(method)
 	thread.PushFrame(newFrame)
@@ -16,4 +18,11 @@ func InvokeMethod(invokerFrame *rtda.Frame, method *heap.Method) {
 			newFrame.LocalVars().SetSlot(uint(i), slot)
 		}
 	}
+}
+
+func _logInvoke(stackSize uint, method *heap.Method) {
+	space := strings.Repeat(" ", int(stackSize))
+	className := method.Class().Name()
+	methodName := method.Name()
+	fmt.Printf("[method]%v %v.%v()\n", space, className, methodName)
 }

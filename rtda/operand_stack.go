@@ -79,6 +79,12 @@ func (self *OperandStack) PopSlot() Slot {
 	self.size--
 	return self.slots[self.size]
 }
+func (self *OperandStack) Clear() {
+	self.size = 0
+	for i := range self.slots {
+		self.slots[i].ref = nil
+	}
+}
 
 func (self *OperandStack) GetRefFromTop(n uint) *heap.Object {
 	return self.slots[self.size-1-n].ref
@@ -95,10 +101,7 @@ func (self *OperandStack) PopBoolean() bool {
 	return self.PopInt() == 1
 }
 
-func (self *OperandStack) Clear() {
-	self.size = 0
-	for i := range self.slots {
-		self.slots[i].ref = nil
-	}
+// todo
+func NewOperandStack(maxStack uint) *OperandStack {
+	return newOperandStack(maxStack)
 }
-	

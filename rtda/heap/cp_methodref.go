@@ -23,13 +23,12 @@ func (self *MethodRef) ResolvedMethod() *Method {
 
 // jvms8 5.4.3.3
 func (self *MethodRef) resolveMethodRef() {
-	//class := self.Class()
-	// todo
 	d := self.cp.class
 	c := self.ResolvedClass()
 	if c.IsInterface() {
 		panic("java.lang.IncompatibleClassChangeError")
 	}
+
 	method := lookupMethod(c, self.name, self.descriptor)
 	if method == nil {
 		panic("java.lang.NoSuchMethodError")
